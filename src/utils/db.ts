@@ -8,10 +8,14 @@ declare global {
   } | undefined;
 }
 
-const MONGODB_URI = process.env.MONGODB_URI!;
+const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  throw new Error('MongoDB URI is not defined in environment variables.');
+  // Development ortamında hata fırlatmak yerine console.warn kullanalım
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('MongoDB URI is not defined in environment variables.');
+  }
+  // Production'da sessizce devam edelim
 }
 
 let cached = global.mongoose;
@@ -21,6 +25,10 @@ if (!cached) {
 }
 
 async function connectDB() {
+  if (!MONGODB_URI) {
+    throw new Error('Please define the MONGODB_URI environment variable');
+  }
+
   if (cached?.conn) {
     return cached.conn;
   }
