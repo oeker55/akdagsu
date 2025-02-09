@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
 
 declare global {
-  let mongoose: {
+  // eslint-disable-next-line no-var
+  var mongoose: {
     conn: typeof mongoose | null;
     promise: Promise<typeof mongoose> | null;
-  };
+  } | undefined;
 }
 
 const MONGODB_URI = process.env.MONGODB_URI!;
@@ -20,16 +21,31 @@ if (!cached) {
 }
 
 async function connectDB() {
-  if (cached.conn) {
+  if (cached?.conn) {
     return cached.conn;
   }
 
-  if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI);
+  if (!cached?.promise) {
+    const opts = {
+      bufferCommands: false,
+    };
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    cached = global.mongoose = { conn: null, promise: mongoose.connect(MONGODB_URI, opts) };
   }
 
-  cached.conn = await cached.promise;
-  return cached.conn;
+  try {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    cached.conn = await cached.promise;
+  } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    cached.promise = null;
+    throw e;
+  }
+
+  return cached?.conn;
 }
 
 export default connectDB; 
